@@ -1,0 +1,29 @@
+<div class="stage" id="stage-amendment" hidden>
+  <section class="panel">
+    <div class="panel__head"><h2>提交容量补报</h2><span class="subtle">CSV · 同容量表模板 · 256 KiB · 修订号须高于原单</span></div>
+    <form class="panel__body inline-form" id="amendment-form">
+      <label for="supplement-file">补报容量表</label>
+      <input id="supplement-file" name="supplement" type="file" accept=".csv,text/csv" required>
+      <button class="btn btn--primary" type="submit">生成修订回执</button>
+    </form>
+    <div class="panel__body subtle" id="amendment-base"></div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>修订回执</h2><span class="subtle" id="amendment-verify"></span></div>
+    <div class="ledger-scroll" id="amendment-list"></div>
+  </section>
+  <section class="panel" id="amendment-detail-panel" hidden>
+    <div class="panel__head"><h2>回执明细 · 再次核对</h2><span class="subtle" id="amendment-detail-id"></span></div>
+    <div class="panel__body">
+      <div id="amendment-checks" class="diff-grid"></div>
+    </div>
+    <div class="panel__head"><h2>补报影响时段</h2><span class="subtle">容量（桩）原单 → 补报</span></div>
+    <div class="ledger-scroll" id="amendment-windows"></div>
+    <div class="panel__head"><h2>借还尝试改判</h2></div>
+    <div class="ledger-scroll" id="amendment-changes"></div>
+    <div class="panel__head"><h2>各站库存变化</h2></div>
+    <div class="ledger-scroll" id="amendment-inventory"></div>
+    <div class="panel__head"><h2>补报原文</h2><a class="btn" id="amendment-download" download>下载原文 CSV</a></div>
+    <div class="panel__body"><pre class="raw-text" id="amendment-raw"></pre></div>
+  </section>
+</div>

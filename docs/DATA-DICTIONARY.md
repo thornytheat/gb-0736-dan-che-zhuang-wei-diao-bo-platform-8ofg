@@ -34,12 +34,25 @@ CSV 上限为 256 KiB 和 2000 条逻辑记录。`line` 是记录起始的物理
 | `POST /api/intake` | `multipart/form-data` 的 `expected` 和 `events` | 以替换事件和当前方案生成新班次 |
 | `POST /api/dispatch/preview` | JSON `run`、`legs` | 返回试算差量、调拨动作、勾稽与槽位 |
 | `POST /api/dispatch/publish` | JSON `expected`、`legs` | 校验并发布方案 |
+| `POST /api/amendments` | `multipart/form-data` 的 `expected` 和 `supplement` | 受理容量补报，合并重算并生成修订回执 |
+| `GET /api/amendments` | 可选 `?run=<编号>` | 列出补报修订回执摘要 |
+| `GET /api/amendments/<run_id>/receipt` | 路径参数 | 返回回执并基于封存原文再次核对 |
+| `GET /api/amendments/<run_id>/supplement.csv` | 路径参数 | 下载逐字封存的补报原文 |
 | `POST /api/runs/rerun` | JSON `expected` | 按封存原文件与已发布方案复算 |
 | `POST /api/runs/restore` | JSON `expected`、`target` | 原子回切到归档版本 |
 
 `expected` 为写入时所见当前班次完整编号。查询七个阶段时可通过 `?run=<编号>` 固定证据版本。写入响应的 `created` 表示新增归档，`changed` 表示响应编号与所提交的 `expected` 不同。无效请求返回 `code`、`message`、`details`。
 
 运行编号由原始文件的 SHA-256 与字节数、规范化方案和规则版本计算。相同输入重跑会比对已存结果，原生成时间、原耗时与证据文件保持一致。证据 SHA-256 针对 `evidence` 对象，编码为 UTF-8，键名排序、紧凑 JSON，中文直接写入。只有下载包外层另附证据摘要。
+
+## 容量补报修订
+
+- 补报使用与 `capacity.csv` 相同的六列模板，作为独立数据源 `capacity_supplement` 封存；原容量表与原发布班次快照永不改写，可随时通过班次留档回查。
+- 原单与补报先各自独立解析、隔离，再合并为**单一容量视图**驱动回放、需求、调拨与库存勾稽，不存在一半按旧单、一半按新单的容量。生效段带 `source`（`capacity` 或 `capacity_supplement`）与源行号，时间线容量切换逐段可溯源。
+- 补报修订号若与原单同站同修订号相撞，提交即返回 `SUPPLEMENT_REVISION_COLLISION`，须改用更高修订号；补报全部行被隔离时返回 `SUPPLEMENT_NO_EFFECT`，不产生半成品归档。一个班次最多叠加一份补报，再次叠加返回 `AMENDMENT_LIMIT`。
+- 修订回执由原快照与修订快照确定性派生，不含当前时点字段：`effective_from/effective_to` 说明补报从何时影响班次，`windows` 对照原单与补报容量，`judgement.changes` 列出需要改判的借还尝试（含原因码前后值），`inventory_changes` 给出各站桩上、暂存、账面期末与差额，`fleet` 证明全网车辆总数前后相等。
+- 回执 `id` 与修订班次编号均为内容寻址：同一补报对同一班次重试返回同一修订且 `created=false`，不新增归档；不同补报撞上陈旧 `expected` 返回 409 `STALE_RUN`。
+- `GET .../receipt` 的 `verification` 逐项重算补报摘要、班次编号、守恒、单一容量视图、尝试对齐与回执确定性，任何一项被篡改都整体判 `ok=false`。
 
 ## 模拟边界
 

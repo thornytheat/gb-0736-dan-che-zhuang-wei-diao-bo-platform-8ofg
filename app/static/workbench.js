@@ -1,6 +1,7 @@
 import {$, api, clock, date, notice, post, showError, time} from './view.js';
 import * as stages from './stages.js';
 import {fillDraft, newLeg, readDraft} from './dispatch.js';
+import {loadAmendments} from './amendment.js';
 
 const anchors = [...document.querySelectorAll('.rail-nav [data-nav]')];
 const keys = anchors.map(link => link.dataset.nav);
@@ -21,12 +22,13 @@ function updateMeta() {
   $('export').href = `/api/runs/${runId()}/evidence.json`;
   $('export').removeAttribute('aria-disabled');
   $('rerun').disabled = runId() !== activeId() || busy;
-  for (const button of document.querySelectorAll('#upload-form button')) button.disabled = runId() !== activeId() || busy;
+  for (const button of document.querySelectorAll('#upload-form button, #amendment-form button')) button.disabled = runId() !== activeId() || busy;
 }
 
-function paint() {
+async function paint() {
   if (!meta || !data) return;
   if (current === 'runs') stages.runs(meta, id => load(id));
+  else if (current === 'amendment') await loadAmendments(meta);
   else if (current === 'dispatch') {
     if (draftRun !== runId()) {
       draftRun = runId();
@@ -64,12 +66,12 @@ async function load(run = selected) {
     if (token !== revision) return;
     const suffix = `?run=${encodeURIComponent(runMeta.manifest.id)}`;
     const [payload, slots] = await Promise.all([
-      stage === 'runs' ? runMeta : api(`/api/${stage}${suffix}`),
+      stage === 'runs' || stage === 'amendment' ? runMeta : api(`/api/${stage}${suffix}`),
       stage === 'replay' ? api(`/api/demand${suffix}`) : null,
     ]);
     if (token !== revision) return;
     meta = runMeta;
-    data = stage === 'runs' ? runMeta : payload.data;
+    data = stage === 'runs' || stage === 'amendment' ? runMeta : payload.data;
     extra = slots?.data;
     updateMeta();
     paint();
@@ -84,7 +86,8 @@ async function mutate(action, success) {
   if (busy) return;
   busy = true;
   const token = revision;
-  const form = current === 'dispatch' ? $('dispatch-form') : current === 'intake' ? $('upload-form') : null;
+  const form = current === 'dispatch' ? $('dispatch-form')
+    : current === 'intake' ? $('upload-form') : current === 'amendment' ? $('amendment-form') : null;
   if (form) form.inert = true;
   $('rerun').disabled = $('restore').disabled = true;
   notice('正在计算…');
@@ -131,6 +134,16 @@ $('upload-form').addEventListener('submit', event => {
     $('upload-form').reset();
     await load(null);
     notice(result.created ? '收件完成 · 已归档' : '文件已收件 · 班次编号保持');
+  });
+});
+$('amendment-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const file = new FormData(event.currentTarget);
+  file.set('expected', runId());
+  mutate(() => api('/api/amendments', {method: 'POST', body: file}), async result => {
+    $('amendment-form').reset();
+    await load(null);
+    notice(result.created ? '容量补报已受理 · 修订回执已归档' : '同一补报重试 · 沿用原修订回执');
   });
 });
 $('dispatch-form').addEventListener('input', invalidate);

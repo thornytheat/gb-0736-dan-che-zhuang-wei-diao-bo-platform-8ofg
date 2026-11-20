@@ -37,6 +37,7 @@ def replay(shift, events, segments, legs=()):
             kind = row['kind']
             code, road = attempt(dock, kind, road)
         timeline.append({'at': stamp(at), 'id': key, 'kind': kind, 'station': station, 'line': line,
+                         'source': row.get('source', 'capacity'),
                          'code': code, 'late': row.get('late', False), 'before': previous,
                          'after': dock.public(), 'road': road, 'transit': transit,
                          'quantity': row.get('count', 0 if code or kind == 'capacity' else 1)})

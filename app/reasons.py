@@ -20,4 +20,13 @@ REASONS = {
     'NO_ACCEPTED_EVENTS': '无可采信事件，请修正文件', 'BODY_TOO_LARGE': '文件体积超限',
     'BAD_REQUEST': '请求格式无效', 'REPLAY_DRIFT': '重跑结果与历史记录不一致',
     'STORE_UNAVAILABLE': '班次存储暂不可用，请重试',
+    'SUPPLEMENT_REVISION_COLLISION': '补报修订号与原容量单同修订记录冲突，请改用更高修订号',
+    'SUPPLEMENT_NO_EFFECT': '补报表没有可生效的容量记录，请核对后再提交',
+    'AMENDMENT_LIMIT': '该班次已含容量补报，不能重复叠加补报',
+    'AMENDMENT_BASE_MISSING': '修订缺少原发布班次，无法生成回执',
+    'AMENDMENT_NOT_FOUND': '该班次没有容量补报修订回执',
+    'SUPPLEMENT_DIGEST': '补报原文摘要',
+    'RUN_IDENTITY': '班次内容编号',
+    'RECEIPT_DETERMINISTIC': '回执确定性',
+    'SINGLE_CAPACITY_VIEW': '单一容量视图',
 }

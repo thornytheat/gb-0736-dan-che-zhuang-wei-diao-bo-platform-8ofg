@@ -23,9 +23,10 @@ export function capacity(data, shift) {
   const station = names(shift);
   kpis([['容量收件', data.input_rows, '行'], ['采信版本', data.accepted, '行'], ['生效区间', data.segments.length, '段'],
     ['容量隔离', data.excluded.length, '行', 'warn'], ['关站区间', data.segments.filter(row => row.slots === 0).length, '段']]);
-  table('capacity-rows', ['站点', '开始', '结束', '修订号', '容量（桩）', '源行', '备注'], data.segments.map(row =>
-    [station(row.station), time(row.start), time(row.end), row.revision, row.slots, row.line, row.note]));
-  table('capacity-errors', lineHeaders, lineRows(data.excluded), '容量记录无冲突');
+  table('capacity-rows', ['站点', '开始', '结束', '修订号', '容量（桩）', '来源', '源行', '备注'], data.segments.map(row =>
+    [station(row.station), time(row.start), time(row.end), row.revision, row.slots,
+      row.source === 'capacity_supplement' ? '补报' : '原单', row.line, row.note]));
+  table('capacity-errors', ['源行', '原因码', '判定', '原始字段'], lineRows(data.excluded), '容量记录无冲突');
 }
 
 function tide(data, shift, onSlot) {

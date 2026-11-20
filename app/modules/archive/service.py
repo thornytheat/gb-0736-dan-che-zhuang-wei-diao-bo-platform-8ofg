@@ -2,6 +2,7 @@ import json
 
 from app.config import SAMPLES
 from app.errors import DomainError
+from app.modules.amendment.receipt import SUPPLEMENT_SOURCE
 from .pipeline import run_shift
 
 
@@ -21,8 +22,8 @@ def seed(store):
 
 
 def preview(store, run_id, draft):
-    store.load(run_id)
-    return run_shift(store.sources(run_id), draft)
+    snapshot = store.load(run_id)
+    return run_shift(store.sources(run_id), draft, base_snapshot=_base(store, snapshot))
 
 
 def publish(store, run_id, *, draft=None, events=None):
@@ -30,7 +31,8 @@ def publish(store, run_id, *, draft=None, events=None):
     sources = store.sources(run_id)
     if events is not None:
         sources['events'] = events
-    snapshot = run_shift(sources, active['dispatch']['legs'] if draft is None else draft)
+    snapshot = run_shift(sources, active['dispatch']['legs'] if draft is None else draft,
+                         base_snapshot=_base(store, active))
     created = store.publish(snapshot, sources, run_id)
     new_id = snapshot['manifest']['id']
     return {'id': new_id, 'created': created, 'changed': new_id != run_id}
@@ -46,3 +48,10 @@ def rerun(store, expected):
     if store.active() != expected:
         raise DomainError('STALE_RUN', 409, current=store.active())
     return publish(store, expected)
+
+
+def _base(store, snapshot):
+    """修订班次重算时回取原发布快照，保证回执仍由同一原结论派生。"""
+    if SUPPLEMENT_SOURCE not in snapshot['manifest']['inputs']:
+        return None
+    return store.load(snapshot['amendment']['base_run_id'])

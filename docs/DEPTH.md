@@ -14,6 +14,7 @@
 | M5 调拨试算 | 验证行程并比较逐站、逐笔差量 | `GET /api/dispatch` `POST /api/dispatch/preview` `POST /api/dispatch/publish` | `app/modules/dispatch/constraints.py` `app/modules/dispatch/compare.py` | `tests/test_dispatch.py` |
 | M6 库存勾稽 | 核对各站期末及全网车辆守恒 | `GET /api/inventory` | `app/modules/inventory/service.py` `app/modules/inventory/stations.py` | `tests/test_inventory.py` |
 | M7 班次方案留档 | 幂等重跑、回切和下载归档证据 | `GET /api/runs` `POST /api/runs/rerun` `POST /api/runs/restore` `GET /api/runs/<run_id>/evidence.json` | `app/modules/archive/service.py` `app/modules/archive/evidence.py` `app/store.py` | `tests/test_archive.py` |
+| M8 容量补报修订 | 交班后受理关站补报，生成可复核修订回执 | `GET /api/amendments` `POST /api/amendments` `GET /api/amendments/<run_id>/receipt` `GET /api/amendments/<run_id>/supplement.csv` | `app/modules/amendment/service.py` `app/modules/amendment/receipt.py` `app/modules/capacity/versions.py` | `tests/test_amendment.py` |
 
 ## 陷阱登记
 
@@ -34,6 +35,10 @@
 | TRAP-23 | `events.csv` 的 0009 正好处于 08:15 | 同一笔计进两个槽位 | 时槽按左闭右开分配 | `app/modules/demand/buckets.py` | `tests/test_demand.py::test_boundary_bucketing_does_not_double_count` |
 | TRAP-25 | `capacity.csv` 002 的同修订容量相互矛盾 | 落点随文件顺序变化 | 隔离同修订冲突，从剩余候选选最高版本 | `app/modules/capacity/versions.py` | `tests/test_capacity.py::test_conflicting_revisions_are_quarantined_together` |
 | TRAP-26 | 样例班次更新后旧页面再发布 | 覆盖当前计划 | 事务内校验当前编号并返回 409 | `app/store.py` | `tests/test_archive.py::test_stale_publish_rejected_and_archive_can_be_restored` |
+| TRAP-27 | 同一补报反复重试 | 每点一次新增一份修订 | 修订编号由原文件、补报摘要与方案内容寻址，已存在即幂等返回 | `app/modules/amendment/service.py` `app/store.py` | `tests/test_amendment.py::test_retry_same_supplement_creates_no_new_revision` |
+| TRAP-28 | 补报与原单同修订号 | 合并切段退化成容量缺口，原因不可读 | 提交前按（站、修订号）预检跨源冲突并返回 `SUPPLEMENT_REVISION_COLLISION` | `app/modules/amendment/service.py` | `tests/test_amendment.py::test_revision_collision_with_original_is_rejected` |
+| TRAP-29 | 容量按新旧单各算一半 | 库存与容量对不上 | 原单与补报先合并成单一容量视图，再驱动整条回放与勾稽，时间线逐段可溯源 | `app/modules/capacity/service.py` `app/modules/replay/service.py` | `tests/test_amendment.py::test_fleet_total_stays_balanced_under_single_capacity_view` |
+| TRAP-30 | 回执或补报原文被悄悄改写 | 交班结论无法追责 | 回执内嵌补报原文与摘要，再次核对逐项重算，篡改回执或源文件均判不符 | `app/modules/amendment/receipt.py` | `tests/test_amendment.py::test_receipt_verifies_and_detects_tampering` |
 
 ## 对账规则
 

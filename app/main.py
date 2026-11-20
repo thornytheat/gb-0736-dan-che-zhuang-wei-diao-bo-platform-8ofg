@@ -6,6 +6,7 @@ from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 
 from .config import MAX_INPUT_BYTES
 from .errors import DomainError
+from .modules.amendment.handler import bp as amendment
 from .modules.archive.handler import bp as archive
 from .modules.archive.service import seed
 from .modules.capacity.handler import bp as capacity
@@ -24,7 +25,7 @@ def create_app(path=None):
     db = Store(path or os.getenv('CYCLE_DB', 'var/shift.sqlite3'))
     app.extensions['shift_store'] = db
     seed(db)
-    for blueprint in (intake, capacity, replay, demand, dispatch, inventory, archive):
+    for blueprint in (intake, capacity, replay, demand, dispatch, inventory, archive, amendment):
         app.register_blueprint(blueprint)
 
     @app.errorhandler(DomainError)
